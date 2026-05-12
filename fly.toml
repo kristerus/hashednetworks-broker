@@ -1,0 +1,54 @@
+# Fly.io deployment config for the HashedNetworks broker.
+#
+# `app` is intentionally generic — `fly launch` will replace it with your
+# chosen name (e.g. hashednetworks-broker). Run:
+#   fly launch --no-deploy --copy-config
+#   fly postgres create --name hashednetworks-broker-db
+#   fly postgres attach hashednetworks-broker-db
+#   fly deploy
+
+app = "hashednetworks-broker"
+primary_region = "fra"   # Frankfurt — adjust to your audience.
+kill_signal = "SIGINT"
+kill_timeout = "10s"
+
+[build]
+dockerfile = "Dockerfile"
+
+[env]
+RUST_LOG = "info,hashednetworks_broker=info,tower_http=warn"
+BIND_ADDR = "0.0.0.0:8080"
+
+[[services]]
+protocol = "tcp"
+internal_port = 8080
+auto_stop_machines = "stop"
+auto_start_machines = true
+min_machines_running = 1
+
+  [[services.ports]]
+  port = 80
+  handlers = ["http"]
+  force_https = true
+
+  [[services.ports]]
+  port = 443
+  handlers = ["tls", "http"]
+
+  [[services.tcp_checks]]
+  interval = "15s"
+  timeout = "2s"
+  grace_period = "5s"
+
+  [[services.http_checks]]
+  interval = "30s"
+  timeout = "5s"
+  grace_period = "5s"
+  method = "GET"
+  path = "/health"
+  protocol = "http"
+
+[[vm]]
+cpu_kind = "shared"
+cpus = 1
+memory_mb = 256

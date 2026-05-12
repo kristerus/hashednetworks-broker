@@ -1,0 +1,30 @@
+/target
+**/*.rs.bk
+Cargo.lock.bak
+
+# Local Postgres data
+/pgdata
+/data
+
+# Fly.io
+.fly/
+
+# IDE
+/.vscode
+/.idea
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local logs
+*.log
+
+# Local secrets / env
+.env
+.env.local
+
+# TypeScript SDK build output
+/clients/typescript/dist
+/clients/typescript/node_modules

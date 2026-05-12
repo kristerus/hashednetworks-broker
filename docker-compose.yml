@@ -1,0 +1,46 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: broker
+      POSTGRES_PASSWORD: broker_dev_password
+      POSTGRES_DB: broker
+    volumes:
+      - broker_pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U broker -d broker"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  broker:
+    build: .
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://broker:broker_dev_password@postgres:5432/broker
+      RUST_LOG: "info,hashednetworks_broker=info"
+      BIND_ADDR: "0.0.0.0:8080"
+    ports:
+      - "18080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  smoke:
+    build: .
+    depends_on:
+      broker:
+        condition: service_healthy
+    environment:
+      BROKER_URL: "ws://broker:8080/ws"
+    entrypoint: ["/usr/bin/tini", "--", "/usr/local/bin/smoke-client"]
+    profiles: ["smoke"]
+
+volumes:
+  broker_pgdata:

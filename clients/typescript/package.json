@@ -1,0 +1,38 @@
+{
+  "name": "@hashednetworks/broker-client",
+  "version": "0.5.0",
+  "description": "TypeScript SDK for the HashedNetworks coordination broker.",
+  "type": "module",
+  "license": "Proprietary",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "clean": "rimraf dist",
+    "example:two-peers": "node --experimental-vm-modules ./examples/two-peers.mjs"
+  },
+  "dependencies": {
+    "@noble/ed25519": "^2.1.0",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/ws": "^8.5.13",
+    "rimraf": "^6.0.1",
+    "typescript": "^5.6.3"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

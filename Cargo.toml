@@ -1,0 +1,80 @@
+[package]
+name = "hashednetworks-broker"
+version = "0.5.0"
+edition = "2021"
+license = "Proprietary"
+publish = false
+description = "Coordination broker for HashedNetworks peer-to-peer file collaboration."
+
+[[bin]]
+name = "broker"
+path = "src/main.rs"
+
+[[bin]]
+name = "smoke-client"
+path = "src/bin/smoke_client.rs"
+
+[dependencies]
+# Async + HTTP
+tokio = { version = "1", features = ["full"] }
+axum = { version = "0.7", features = ["ws", "macros"] }
+tower = "0.5"
+tower-http = { version = "0.6", features = ["cors", "trace"] }
+
+# WS helpers
+futures-util = "0.3"
+
+# Persistence
+sqlx = { version = "0.8", default-features = false, features = [
+    "runtime-tokio-rustls",
+    "postgres",
+    "chrono",
+    "uuid",
+    "macros",
+    "migrate",
+] }
+
+# Serde
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Crypto
+ed25519-dalek = { version = "2", features = ["rand_core"] }
+hex = "0.4"
+base64 = "0.22"
+rand = "0.8"
+
+# WebSocket client (used by the bundled smoke-client binary)
+tokio-tungstenite = { version = "0.24", features = ["rustls-tls-native-roots"] }
+url = "2"
+
+# Time
+chrono = { version = "0.4", features = ["serde"] }
+
+# Logging + metrics
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+prometheus = "0.13"
+
+# Config + misc
+clap = { version = "4", features = ["derive", "env"] }
+dotenvy = "0.15"
+anyhow = "1"
+thiserror = "1"
+dashmap = "6"
+parking_lot = "0.12"
+uuid = { version = "1", features = ["v4", "serde"] }
+async-trait = "0.1"
+governor = "0.7"
+nonzero_ext = "0.3"
+
+[dev-dependencies]
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = "symbols"
+
+[profile.dev]
+opt-level = 0
