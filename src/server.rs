@@ -14,14 +14,14 @@ use crate::signaling::{self as signaling_mod, SignalingLimiter};
 use crate::stun;
 use crate::teams;
 use axum::{
-    Router,
     extract::{
-        ConnectInfo, State,
         ws::{Message, WebSocket, WebSocketUpgrade},
+        ConnectInfo, State,
     },
     http::StatusCode,
     response::IntoResponse,
     routing::{any, get},
+    Router,
 };
 use futures_util::{SinkExt, StreamExt};
 use std::net::SocketAddr;
@@ -29,7 +29,7 @@ use std::sync::Arc;
 use tokio::sync::mpsc;
 use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
-use tracing::{Instrument, error, info, info_span, warn};
+use tracing::{error, info, info_span, warn, Instrument};
 
 #[derive(Clone)]
 pub struct AppState {
@@ -139,7 +139,9 @@ pub async fn serve_socket(state: AppState, addr: SocketAddr, socket: WebSocket) 
                 register_msg.request_id().map(|s| s.to_string()),
             ))
             .await;
-        return Err(BrokerError::Malformed("first message must be register".into()));
+        return Err(BrokerError::Malformed(
+            "first message must be register".into(),
+        ));
     }
     if let Err(e) = auth::verify_signed_message(&register_msg) {
         let req_id = register_msg.request_id().map(|s| s.to_string());
@@ -175,7 +177,11 @@ pub async fn serve_socket(state: AppState, addr: SocketAddr, socket: WebSocket) 
             match handles::claim(pool, &pubkey, h).await {
                 Ok(_) => {
                     handle_claimed = true;
-                    state.metrics.handle_claims_total.with_label_values(&["ok"]).inc();
+                    state
+                        .metrics
+                        .handle_claims_total
+                        .with_label_values(&["ok"])
+                        .inc();
                 }
                 Err(BrokerError::HandleTaken | BrokerError::HandleAlreadyOwned) => {
                     state
@@ -227,7 +233,10 @@ pub async fn serve_socket(state: AppState, addr: SocketAddr, socket: WebSocket) 
         })
         .await;
 
-    state.presence.broadcast(&state.registry, &pubkey, true).await;
+    state
+        .presence
+        .broadcast(&state.registry, &pubkey, true)
+        .await;
 
     let span = info_span!("peer", pubkey = %pubkey, addr = %addr);
     let pump_result = pump_messages(state.clone(), pubkey.clone(), tx.clone(), &mut stream)
@@ -300,8 +309,8 @@ async fn handle_client_message(
     text: &str,
     tx: &mpsc::Sender<ServerMessage>,
 ) -> Result<()> {
-    let msg: ClientMessage = serde_json::from_str(text)
-        .map_err(|e| BrokerError::Malformed(format!("parse: {e}")))?;
+    let msg: ClientMessage =
+        serde_json::from_str(text).map_err(|e| BrokerError::Malformed(format!("parse: {e}")))?;
     auth::verify_signed_message(&msg)?;
     if msg.pubkey() != session_pubkey {
         return Err(BrokerError::Malformed(
@@ -333,14 +342,17 @@ async fn handle_client_message(
             request_id,
             ..
         } => {
-            let info = state.registry.get(&target_pubkey).map(|p| ServerMessage::PeerInfo {
-                peer_id: p.pubkey.clone(),
-                handle: p.handle.clone(),
-                addresses: p.addresses.clone(),
-                reflected_address: Some(stun::format_reflected(p.reflected)),
-                online: true,
-                request_id: request_id.clone(),
-            });
+            let info = state
+                .registry
+                .get(&target_pubkey)
+                .map(|p| ServerMessage::PeerInfo {
+                    peer_id: p.pubkey.clone(),
+                    handle: p.handle.clone(),
+                    addresses: p.addresses.clone(),
+                    reflected_address: Some(stun::format_reflected(p.reflected)),
+                    online: true,
+                    request_id: request_id.clone(),
+                });
             if let Some(m) = info {
                 let _ = tx.send(m).await;
             } else {
@@ -372,8 +384,13 @@ async fn handle_client_message(
             let info = ServerMessage::PeerInfo {
                 peer_id: pk.clone(),
                 handle: Some(target_handle.clone()),
-                addresses: online_peer.as_ref().map(|p| p.addresses.clone()).unwrap_or_default(),
-                reflected_address: online_peer.as_ref().map(|p| stun::format_reflected(p.reflected)),
+                addresses: online_peer
+                    .as_ref()
+                    .map(|p| p.addresses.clone())
+                    .unwrap_or_default(),
+                reflected_address: online_peer
+                    .as_ref()
+                    .map(|p| stun::format_reflected(p.reflected)),
                 online: online_peer.is_some(),
                 request_id,
             };
@@ -447,13 +464,19 @@ async fn handle_client_message(
             let id = relay_mod::parse_session_id(&session_id)?;
             // `accept()` already broadcasts RelaySessionEstablished to both
             // peers — don't send an additional copy here.
-            state.relay.accept(&state.registry, session_pubkey, id).await?;
+            state
+                .relay
+                .accept(&state.registry, session_pubkey, id)
+                .await?;
         }
         ClientMessage::Relay {
             session_id, data, ..
         } => {
             let id = relay_mod::parse_session_id(&session_id)?;
-            let bytes = state.relay.forward(&state.registry, session_pubkey, id, &data).await?;
+            let bytes = state
+                .relay
+                .forward(&state.registry, session_pubkey, id, &data)
+                .await?;
             state.metrics.relay_bytes_total.inc_by(bytes);
         }
         ClientMessage::TeamAnnounce {

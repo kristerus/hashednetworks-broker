@@ -88,7 +88,5 @@ impl PeerRegistry {
 /// Try to send a message to a peer. Maps a "channel closed" outcome to
 /// [`BrokerError::PeerOffline`].
 pub async fn try_send(tx: &PeerSender, msg: ServerMessage) -> Result<()> {
-    tx.send(msg)
-        .await
-        .map_err(|_| BrokerError::PeerOffline)
+    tx.send(msg).await.map_err(|_| BrokerError::PeerOffline)
 }

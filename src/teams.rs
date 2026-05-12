@@ -17,10 +17,16 @@ use uuid::Uuid;
 /// Bytes the admin signs: 16 bytes of team UUID followed by 32 bytes of
 /// member pubkey (raw, hex-decoded).
 fn admin_signed_bytes(team_id: &Uuid, member_pubkey_hex: &str) -> Result<Vec<u8>> {
-    let member_bytes = hex::decode(member_pubkey_hex.strip_prefix("ed25519:").unwrap_or(member_pubkey_hex))
-        .map_err(|e| BrokerError::InvalidPubKey(e.to_string()))?;
+    let member_bytes = hex::decode(
+        member_pubkey_hex
+            .strip_prefix("ed25519:")
+            .unwrap_or(member_pubkey_hex),
+    )
+    .map_err(|e| BrokerError::InvalidPubKey(e.to_string()))?;
     if member_bytes.len() != 32 {
-        return Err(BrokerError::InvalidPubKey("member pubkey must be 32 bytes".into()));
+        return Err(BrokerError::InvalidPubKey(
+            "member pubkey must be 32 bytes".into(),
+        ));
     }
     let mut bytes = Vec::with_capacity(48);
     bytes.extend_from_slice(team_id.as_bytes());

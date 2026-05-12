@@ -7,7 +7,7 @@
 //!   watched_pubkey -> {subscribers}    (broadcast on state change)
 
 use crate::protocol::ServerMessage;
-use crate::registry::{PeerRegistry, PeerSender, try_send};
+use crate::registry::{try_send, PeerRegistry, PeerSender};
 use dashmap::DashMap;
 use std::collections::HashSet;
 use std::sync::Arc;
@@ -72,12 +72,7 @@ impl PresenceManager {
 
     /// Broadcast a presence change for `pubkey` to everyone watching it.
     /// The registry is consulted only to obtain the watchers' senders.
-    pub async fn broadcast(
-        &self,
-        registry: &Arc<PeerRegistry>,
-        pubkey: &str,
-        online: bool,
-    ) {
+    pub async fn broadcast(&self, registry: &Arc<PeerRegistry>, pubkey: &str, online: bool) {
         let watchers: Vec<String> = match self.watchers.get(pubkey) {
             Some(w) => w.iter().cloned().collect(),
             None => return,

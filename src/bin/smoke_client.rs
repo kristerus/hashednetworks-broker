@@ -12,10 +12,10 @@ use base64::Engine;
 use chrono::Utc;
 use ed25519_dalek::{Signer, SigningKey};
 use futures_util::{SinkExt, StreamExt};
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 use std::time::Duration;
 use tokio_tungstenite::tungstenite::Message;
-use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async};
+use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
 
 type WsStream = WebSocketStream<MaybeTlsStream<tokio::net::TcpStream>>;
 
@@ -44,9 +44,10 @@ impl Peer {
         obj.insert("signature".into(), Value::String(String::new()));
         let canonical = serde_json::to_vec(&body).unwrap();
         let sig = self.sk.sign(&canonical);
-        body.as_object_mut()
-            .unwrap()
-            .insert("signature".into(), Value::String(hex::encode(sig.to_bytes())));
+        body.as_object_mut().unwrap().insert(
+            "signature".into(),
+            Value::String(hex::encode(sig.to_bytes())),
+        );
         serde_json::to_string(&body).unwrap()
     }
 
@@ -87,7 +88,11 @@ async fn main() -> anyhow::Result<()> {
 
     let mut alice = Peer::connect(&broker).await?;
     let mut bob = Peer::connect(&broker).await?;
-    eprintln!("[smoke] connected; alice={} bob={}", &alice.pubkey_hex[..16], &bob.pubkey_hex[..16]);
+    eprintln!(
+        "[smoke] connected; alice={} bob={}",
+        &alice.pubkey_hex[..16],
+        &bob.pubkey_hex[..16]
+    );
 
     alice
         .send(json!({
@@ -166,7 +171,10 @@ async fn main() -> anyhow::Result<()> {
         }))
         .await?;
     let recv_b = bob.expect_type("relay_data").await?;
-    assert_eq!(recv_b.get("data").and_then(|s| s.as_str()).unwrap(), payload_a);
+    assert_eq!(
+        recv_b.get("data").and_then(|s| s.as_str()).unwrap(),
+        payload_a
+    );
 
     // Bob -> Alice.
     let payload_b = base64::engine::general_purpose::STANDARD.encode(b"relay frame B");
@@ -177,7 +185,10 @@ async fn main() -> anyhow::Result<()> {
     }))
     .await?;
     let recv_a = alice.expect_type("relay_data").await?;
-    assert_eq!(recv_a.get("data").and_then(|s| s.as_str()).unwrap(), payload_b);
+    assert_eq!(
+        recv_a.get("data").and_then(|s| s.as_str()).unwrap(),
+        payload_b
+    );
     eprintln!("[smoke] relay bidirectional OK");
 
     // Tiny pause so server-side cleanup runs cleanly when we drop.

@@ -9,7 +9,7 @@
 use crate::error::{BrokerError, Result};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use sqlx::{Pool, Postgres, postgres::PgPoolOptions};
+use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 use uuid::Uuid;
 
 pub type DbPool = Pool<Postgres>;
@@ -126,12 +126,11 @@ pub async fn claim_handle(pool: &DbPool, pubkey: &str, handle: &str) -> Result<(
 
     // Has this pubkey already claimed a (different) handle? Free-tier rule:
     // 1 handle per pubkey.
-    let existing: Option<(String,)> = sqlx::query_as(
-        "SELECT handle FROM handles WHERE pubkey = $1",
-    )
-    .bind(pubkey)
-    .fetch_optional(&mut *tx)
-    .await?;
+    let existing: Option<(String,)> =
+        sqlx::query_as("SELECT handle FROM handles WHERE pubkey = $1")
+            .bind(pubkey)
+            .fetch_optional(&mut *tx)
+            .await?;
     if let Some((existing_handle,)) = existing {
         if existing_handle == handle {
             tx.rollback().await?;
@@ -142,11 +141,10 @@ pub async fn claim_handle(pool: &DbPool, pubkey: &str, handle: &str) -> Result<(
     }
 
     // Is the handle free?
-    let taken: Option<(String,)> =
-        sqlx::query_as("SELECT pubkey FROM handles WHERE handle = $1")
-            .bind(handle)
-            .fetch_optional(&mut *tx)
-            .await?;
+    let taken: Option<(String,)> = sqlx::query_as("SELECT pubkey FROM handles WHERE handle = $1")
+        .bind(handle)
+        .fetch_optional(&mut *tx)
+        .await?;
     if taken.is_some() {
         tx.rollback().await?;
         return Err(BrokerError::HandleTaken);
@@ -167,11 +165,10 @@ pub async fn claim_handle(pool: &DbPool, pubkey: &str, handle: &str) -> Result<(
 }
 
 pub async fn resolve_handle(pool: &DbPool, handle: &str) -> Result<Option<String>> {
-    let row: Option<(String,)> =
-        sqlx::query_as("SELECT pubkey FROM handles WHERE handle = $1")
-            .bind(handle)
-            .fetch_optional(pool)
-            .await?;
+    let row: Option<(String,)> = sqlx::query_as("SELECT pubkey FROM handles WHERE handle = $1")
+        .bind(handle)
+        .fetch_optional(pool)
+        .await?;
     Ok(row.map(|(pk,)| pk))
 }
 

@@ -60,16 +60,36 @@ impl Metrics {
         ))
         .unwrap();
 
-        registry.register(Box::new(connected_peers.clone())).unwrap();
-        registry.register(Box::new(registrations_total.clone())).unwrap();
-        registry.register(Box::new(handle_claims_total.clone())).unwrap();
-        registry.register(Box::new(signaling_messages_total.clone())).unwrap();
-        registry.register(Box::new(signaling_rejected_total.clone())).unwrap();
-        registry.register(Box::new(relay_bytes_total.clone())).unwrap();
-        registry.register(Box::new(relay_sessions_total.clone())).unwrap();
-        registry.register(Box::new(team_announces_total.clone())).unwrap();
-        registry.register(Box::new(presence_subscriptions.clone())).unwrap();
-        registry.register(Box::new(message_handle_seconds.clone())).unwrap();
+        registry
+            .register(Box::new(connected_peers.clone()))
+            .unwrap();
+        registry
+            .register(Box::new(registrations_total.clone()))
+            .unwrap();
+        registry
+            .register(Box::new(handle_claims_total.clone()))
+            .unwrap();
+        registry
+            .register(Box::new(signaling_messages_total.clone()))
+            .unwrap();
+        registry
+            .register(Box::new(signaling_rejected_total.clone()))
+            .unwrap();
+        registry
+            .register(Box::new(relay_bytes_total.clone()))
+            .unwrap();
+        registry
+            .register(Box::new(relay_sessions_total.clone()))
+            .unwrap();
+        registry
+            .register(Box::new(team_announces_total.clone()))
+            .unwrap();
+        registry
+            .register(Box::new(presence_subscriptions.clone()))
+            .unwrap();
+        registry
+            .register(Box::new(message_handle_seconds.clone()))
+            .unwrap();
 
         Arc::new(Self {
             registry,

@@ -50,14 +50,29 @@ mod tests {
 
     #[test]
     fn valid_handles_accept() {
-        for h in ["alice", "ali_ce", "alice.bob", "alice-bob", "alice@org", "a1"] {
+        for h in [
+            "alice",
+            "ali_ce",
+            "alice.bob",
+            "alice-bob",
+            "alice@org",
+            "a1",
+        ] {
             validate_handle(h).expect(h);
         }
     }
 
     #[test]
     fn invalid_handles_reject() {
-        for h in ["a", "Alice", "alice org", "al ice", "al!ce", "a@b@c", "x".repeat(65).as_str()] {
+        for h in [
+            "a",
+            "Alice",
+            "alice org",
+            "al ice",
+            "al!ce",
+            "a@b@c",
+            "x".repeat(65).as_str(),
+        ] {
             assert!(validate_handle(h).is_err(), "should reject {h:?}");
         }
     }

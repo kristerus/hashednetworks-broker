@@ -17,8 +17,8 @@
 //! Restart loses state. v0.5 explicit non-goal: per-peer durable quota.
 
 use crate::error::{BrokerError, Result};
-use crate::protocol::{RELAY_MAX_FRAME, ServerMessage};
-use crate::registry::{PeerRegistry, try_send};
+use crate::protocol::{ServerMessage, RELAY_MAX_FRAME};
+use crate::registry::{try_send, PeerRegistry};
 use base64::Engine;
 use dashmap::DashMap;
 use parking_lot::Mutex;
@@ -41,9 +41,9 @@ struct Session {
 
 /// Token-bucket bandwidth limiter, plus rolling daily quota.
 struct PeerQuota {
-    tokens: f64,           // current bytes available
-    last_refill: Instant,  // when tokens were last topped up
-    day_used: u64,         // bytes used in the current 24h window
+    tokens: f64,          // current bytes available
+    last_refill: Instant, // when tokens were last topped up
+    day_used: u64,        // bytes used in the current 24h window
     day_window_start: Instant,
 }
 
@@ -62,8 +62,8 @@ impl PeerQuota {
 
         // Refill token bucket at BYTES_PER_SECOND.
         let elapsed = now.duration_since(self.last_refill).as_secs_f64();
-        self.tokens = (self.tokens + elapsed * BYTES_PER_SECOND as f64)
-            .min(BYTES_PER_SECOND as f64);
+        self.tokens =
+            (self.tokens + elapsed * BYTES_PER_SECOND as f64).min(BYTES_PER_SECOND as f64);
         self.last_refill = now;
 
         // Reset daily window if it's been 24h.
@@ -89,8 +89,8 @@ pub struct RelayManager {
     quotas: DashMap<String, Arc<Mutex<PeerQuota>>>,
 }
 
-const BYTES_PER_SECOND: u64 = 1024 * 1024;          // 1 MB/s
-const BYTES_PER_DAY: u64 = 1024 * 1024 * 1024;      // 1 GB/day
+const BYTES_PER_SECOND: u64 = 1024 * 1024; // 1 MB/s
+const BYTES_PER_DAY: u64 = 1024 * 1024 * 1024; // 1 GB/day
 
 impl Default for RelayManager {
     fn default() -> Self {
@@ -275,7 +275,7 @@ mod tests {
     fn quota_token_bucket_refills() {
         let mut q = PeerQuota::new();
         q.try_consume(1024 * 1024).unwrap(); // burn the full bucket
-        // Immediate retry should fail (no tokens).
+                                             // Immediate retry should fail (no tokens).
         assert!(q.try_consume(1024).is_err());
         // After 100ms we should have ~100KB tokens — try a 50KB consume.
         sleep(Duration::from_millis(150));

@@ -6,7 +6,7 @@
 //! [`MAX_DRIFT_SECS`] (or as much in the future).
 
 use crate::error::{BrokerError, Result};
-use crate::protocol::{ClientMessage, canonical_bytes};
+use crate::protocol::{canonical_bytes, ClientMessage};
 use chrono::Utc;
 use ed25519_dalek::{Signature, Verifier, VerifyingKey};
 
@@ -56,9 +56,7 @@ fn check_timestamp(ts: i64) -> Result<()> {
         return Err(BrokerError::StaleMessage { drift_secs: drift });
     }
     if drift < -MAX_DRIFT_SECS {
-        return Err(BrokerError::FutureMessage {
-            drift_secs: -drift,
-        });
+        return Err(BrokerError::FutureMessage { drift_secs: -drift });
     }
     Ok(())
 }

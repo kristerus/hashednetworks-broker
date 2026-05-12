@@ -9,13 +9,13 @@ use base64::Engine;
 use chrono::Utc;
 use ed25519_dalek::{Signer, SigningKey};
 use futures_util::{SinkExt, StreamExt};
-use hashednetworks_broker::{AppState, build_router};
-use serde_json::{Value, json};
+use hashednetworks_broker::{build_router, AppState};
+use serde_json::{json, Value};
 use std::net::SocketAddr;
 use std::time::Duration;
 use tokio::time::timeout;
 use tokio_tungstenite::tungstenite::Message;
-use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async};
+use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
 
 type WsStream = WebSocketStream<MaybeTlsStream<tokio::net::TcpStream>>;
 
@@ -73,9 +73,10 @@ impl Peer {
         obj.insert("signature".into(), Value::String(String::new()));
         let canonical = serde_json::to_vec(&body).unwrap();
         let sig = self.sk.sign(&canonical);
-        body.as_object_mut()
-            .unwrap()
-            .insert("signature".into(), Value::String(hex::encode(sig.to_bytes())));
+        body.as_object_mut().unwrap().insert(
+            "signature".into(),
+            Value::String(hex::encode(sig.to_bytes())),
+        );
         serde_json::to_string(&body).unwrap()
     }
 
@@ -122,8 +123,16 @@ async fn registration_and_lookup() {
         }))
         .await;
     let reg = alice.expect("registered").await;
-    assert_eq!(reg.get("peer_id").unwrap().as_str().unwrap(), alice.pubkey_hex);
-    assert!(reg.get("reflected_address").unwrap().as_str().unwrap().starts_with("127.0.0.1:"));
+    assert_eq!(
+        reg.get("peer_id").unwrap().as_str().unwrap(),
+        alice.pubkey_hex
+    );
+    assert!(reg
+        .get("reflected_address")
+        .unwrap()
+        .as_str()
+        .unwrap()
+        .starts_with("127.0.0.1:"));
 
     // Lookup self.
     let target = alice.pubkey_hex.clone();
@@ -168,7 +177,10 @@ async fn signal_delivers_between_peers() {
         }))
         .await;
     let recv = bob.expect("signal").await;
-    assert_eq!(recv.get("from").unwrap().as_str().unwrap(), alice.pubkey_hex);
+    assert_eq!(
+        recv.get("from").unwrap().as_str().unwrap(),
+        alice.pubkey_hex
+    );
     assert_eq!(recv.get("payload").unwrap().as_str().unwrap(), payload);
 }
 
@@ -195,10 +207,18 @@ async fn relay_round_trip() {
         }))
         .await;
     let session = alice.expect("relay_session_established").await;
-    let session_id = session.get("session_id").unwrap().as_str().unwrap().to_string();
+    let session_id = session
+        .get("session_id")
+        .unwrap()
+        .as_str()
+        .unwrap()
+        .to_string();
 
     let offer = bob.expect("relay_offer").await;
-    assert_eq!(offer.get("session_id").unwrap().as_str().unwrap(), session_id);
+    assert_eq!(
+        offer.get("session_id").unwrap().as_str().unwrap(),
+        session_id
+    );
 
     bob.send(json!({
         "type": "accept_relay",
@@ -286,9 +306,10 @@ async fn rejects_stale_signed_message() {
     });
     let canonical = serde_json::to_vec(&body).unwrap();
     let sig = sk.sign(&canonical);
-    body.as_object_mut()
-        .unwrap()
-        .insert("signature".into(), Value::String(hex::encode(sig.to_bytes())));
+    body.as_object_mut().unwrap().insert(
+        "signature".into(),
+        Value::String(hex::encode(sig.to_bytes())),
+    );
     peer.ws
         .send(Message::Text(serde_json::to_string(&body).unwrap()))
         .await

@@ -5,8 +5,8 @@
 //! (`SIGNALING_MAX_PAYLOAD` bytes after base64 decode).
 
 use crate::error::{BrokerError, Result};
-use crate::protocol::{SIGNALING_MAX_PAYLOAD, ServerMessage};
-use crate::registry::{PeerRegistry, try_send};
+use crate::protocol::{ServerMessage, SIGNALING_MAX_PAYLOAD};
+use crate::registry::{try_send, PeerRegistry};
 use chrono::Utc;
 use dashmap::DashMap;
 use governor::clock::DefaultClock;
