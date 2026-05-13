@@ -144,7 +144,7 @@ async fn registration_and_lookup() {
         }))
         .await;
     let info = alice.expect("peer_info").await;
-    assert_eq!(info.get("online").unwrap().as_bool().unwrap(), true);
+    assert!(info.get("online").unwrap().as_bool().unwrap());
 }
 
 #[tokio::test]
@@ -279,12 +279,12 @@ async fn presence_subscription_emits_online_offline() {
     alice.expect("subscribe_presence_ack").await;
     let pu = alice.expect("presence_update").await;
     assert_eq!(pu.get("peer_id").unwrap().as_str().unwrap(), bob.pubkey_hex);
-    assert_eq!(pu.get("online").unwrap().as_bool().unwrap(), true);
+    assert!(pu.get("online").unwrap().as_bool().unwrap());
 
     // When Bob disconnects, Alice should get a presence_update(false).
     drop(bob);
     let pu = alice.expect("presence_update").await;
-    assert_eq!(pu.get("online").unwrap().as_bool().unwrap(), false);
+    assert!(!pu.get("online").unwrap().as_bool().unwrap());
 }
 
 #[tokio::test]
