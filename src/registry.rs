@@ -77,6 +77,10 @@ impl PeerRegistry {
         self.by_pubkey.len()
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.by_pubkey.is_empty()
+    }
+
     pub fn online_set(&self, pubkeys: &[String]) -> Vec<(String, bool)> {
         pubkeys
             .iter()
