@@ -152,26 +152,29 @@ pub async fn serve_socket(state: AppState, addr: SocketAddr, socket: WebSocket) 
         return Err(BrokerError::SignatureVerifyFailed);
     }
 
-    let (pubkey, requested_handle, addresses, register_request_id) = match &register_msg {
-        ClientMessage::Register {
-            pubkey,
-            handle,
-            addresses,
-            request_id,
-            ..
-        } => (
-            pubkey.clone(),
-            handle.clone(),
-            addresses.clone(),
-            request_id.clone(),
-        ),
-        _ => unreachable!(),
-    };
+    let (pubkey, requested_handle, addresses, declared_kind, register_request_id) =
+        match &register_msg {
+            ClientMessage::Register {
+                pubkey,
+                handle,
+                addresses,
+                kind,
+                request_id,
+                ..
+            } => (
+                pubkey.clone(),
+                handle.clone(),
+                addresses.clone(),
+                kind.unwrap_or(crate::protocol::IdentityKind::User),
+                request_id.clone(),
+            ),
+            _ => unreachable!(),
+        };
 
     let mut handle_claimed = false;
     if let Some(pool) = state.db.as_ref() {
-        if let Err(e) = db::upsert_peer(pool, &pubkey).await {
-            warn!(?e, "upsert_peer failed (continuing)");
+        if let Err(e) = db::upsert_peer_with_kind(pool, &pubkey, declared_kind.as_str()).await {
+            warn!(?e, "upsert_peer_with_kind failed (continuing)");
         }
         if let Some(h) = requested_handle.as_ref() {
             match handles::claim(pool, &pubkey, h).await {
@@ -342,17 +345,25 @@ async fn handle_client_message(
             request_id,
             ..
         } => {
-            let info = state
-                .registry
-                .get(&target_pubkey)
-                .map(|p| ServerMessage::PeerInfo {
-                    peer_id: p.pubkey.clone(),
-                    handle: p.handle.clone(),
-                    addresses: p.addresses.clone(),
-                    reflected_address: Some(stun::format_reflected(p.reflected)),
-                    online: true,
-                    request_id: request_id.clone(),
-                });
+            let peer = state.registry.get(&target_pubkey);
+            let resolved_kind = if let Some(pool) = state.db.as_ref() {
+                db::peer_kind(pool, &target_pubkey)
+                    .await
+                    .ok()
+                    .flatten()
+                    .and_then(|s| crate::protocol::IdentityKind::parse(&s))
+            } else {
+                None
+            };
+            let info = peer.map(|p| ServerMessage::PeerInfo {
+                peer_id: p.pubkey.clone(),
+                handle: p.handle.clone(),
+                addresses: p.addresses.clone(),
+                reflected_address: Some(stun::format_reflected(p.reflected)),
+                online: true,
+                kind: resolved_kind,
+                request_id: request_id.clone(),
+            });
             if let Some(m) = info {
                 let _ = tx.send(m).await;
             } else {
@@ -381,6 +392,15 @@ async fn handle_client_message(
                 }
             };
             let online_peer = state.registry.get(&pk);
+            let resolved_kind = if let Some(pool) = state.db.as_ref() {
+                db::peer_kind(pool, &pk)
+                    .await
+                    .ok()
+                    .flatten()
+                    .and_then(|s| crate::protocol::IdentityKind::parse(&s))
+            } else {
+                None
+            };
             let info = ServerMessage::PeerInfo {
                 peer_id: pk.clone(),
                 handle: Some(target_handle.clone()),
@@ -392,6 +412,7 @@ async fn handle_client_message(
                     .as_ref()
                     .map(|p| stun::format_reflected(p.reflected)),
                 online: online_peer.is_some(),
+                kind: resolved_kind,
                 request_id,
             };
             let _ = tx.send(info).await;

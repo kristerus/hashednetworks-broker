@@ -80,6 +80,34 @@ pub async fn upsert_peer(pool: &DbPool, pubkey: &str) -> Result<()> {
     Ok(())
 }
 
+/// Upsert peer + record its declared identity scope. Called when we want
+/// to surface `kind` later via PeerInfo. Idempotent.
+pub async fn upsert_peer_with_kind(pool: &DbPool, pubkey: &str, kind: &str) -> Result<()> {
+    sqlx::query(
+        r#"
+        INSERT INTO peers (pubkey, kind, last_seen)
+        VALUES ($1, $2, NOW())
+        ON CONFLICT (pubkey)
+        DO UPDATE SET kind = EXCLUDED.kind, last_seen = NOW()
+        "#,
+    )
+    .bind(pubkey)
+    .bind(kind)
+    .execute(pool)
+    .await?;
+    Ok(())
+}
+
+/// Fetch the recorded identity kind for a pubkey, or `None` if the peer is
+/// unknown.
+pub async fn peer_kind(pool: &DbPool, pubkey: &str) -> Result<Option<String>> {
+    let row: Option<(String,)> = sqlx::query_as("SELECT kind FROM peers WHERE pubkey = $1")
+        .bind(pubkey)
+        .fetch_optional(pool)
+        .await?;
+    Ok(row.map(|(k,)| k))
+}
+
 pub async fn get_peer(pool: &DbPool, pubkey: &str) -> Result<Option<PeerRecord>> {
     let rec: Option<PeerRecord> = sqlx::query_as::<_, PeerRow>(
         r#"

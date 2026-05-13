@@ -17,6 +17,32 @@ pub struct PeerAddresses {
     pub public: Option<String>,
 }
 
+/// Identity scope a peer declares on Register. Pre-v0.7 clients omit this
+/// field, in which case the broker treats them as `User`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum IdentityKind {
+    User,
+    Machine,
+}
+
+impl IdentityKind {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::User => "user",
+            Self::Machine => "machine",
+        }
+    }
+
+    pub fn parse(s: &str) -> Option<Self> {
+        match s {
+            "user" => Some(Self::User),
+            "machine" => Some(Self::Machine),
+            _ => None,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum ClientMessage {
@@ -25,6 +51,10 @@ pub enum ClientMessage {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         handle: Option<String>,
         addresses: PeerAddresses,
+        /// Identity scope declared by the peer. Defaults to `User` when
+        /// missing so pre-v0.7 clients still verify.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        kind: Option<IdentityKind>,
         timestamp: i64,
         #[serde(default)]
         signature: String,
@@ -218,6 +248,10 @@ pub enum ServerMessage {
         addresses: PeerAddresses,
         reflected_address: Option<String>,
         online: bool,
+        /// Mirrors the identity scope the peer registered with. Absent when
+        /// the peer pre-dates v0.7.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        kind: Option<IdentityKind>,
         request_id: Option<String>,
     },
     Signal {

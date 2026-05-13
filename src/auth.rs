@@ -87,6 +87,7 @@ mod tests {
                 lan: vec!["192.168.1.42:51820".into()],
                 public: None,
             },
+            kind: None,
             timestamp: ts,
             signature: String::new(),
             request_id: Some("req-1".into()),
